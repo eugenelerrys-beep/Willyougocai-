@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Will you go on a friendly date with me?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fff6ee; --bg2:#ffe4ec; --ink:#a8325e; --pink:#ff8fb1; --pink-deep:#f0608f;
+  --white:#fffdfb; --shadow:rgba(240,96,143,.35);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--bg:#2a1620;--bg2:#3a1d2b;--ink:#ffd3e2;--pink:#ff8fb1;--pink-deep:#f0608f;--white:#3f2230;--shadow:rgba(255,143,177,.3)}
+}
+:root[data-theme="dark"]{--bg:#2a1620;--bg2:#3a1d2b;--ink:#ffd3e2;--pink:#ff8fb1;--pink-deep:#f0608f;--white:#3f2230;--shadow:rgba(255,143,177,.3)}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0}
+body{
+  background:radial-gradient(circle at 30% 20%,var(--bg2),var(--bg) 65%);
+  font-family:"Fredoka","Quicksand","Trebuchet MS",system-ui,sans-serif;
+  color:var(--ink); overflow:hidden; -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.hearts{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.hearts span{position:absolute;bottom:-40px;opacity:0;animation:rise linear infinite;color:var(--pink)}
+@keyframes rise{
+  0%{transform:translateY(0) translateX(0) scale(.8);opacity:0}
+  15%{opacity:.55}
+  100%{transform:translateY(-110vh) translateX(var(--dx)) scale(1.1);opacity:0}
+}
+main{
+  position:relative;z-index:2;height:100%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:24px;gap:36px;
+}
+h1{
+  margin:0;font-weight:600;line-height:1.15;letter-spacing:.01em;
+  font-size:clamp(1.9rem,6.4vw,3.8rem);max-width:15em;text-wrap:balance;
+  animation:pop .9s cubic-bezier(.2,1.4,.4,1) both;
+}
+.row{display:flex;gap:18px;align-items:center;justify-content:center;flex-wrap:nowrap}
+button{
+  font:inherit;font-weight:600;font-size:clamp(1.1rem,3.6vw,1.5rem);
+  border:0;border-radius:999px;padding:.8em 2em;cursor:pointer;min-width:7.2em;
+  transition:transform .2s,box-shadow .2s;
+}
+#yes{
+  background:var(--pink-deep);color:#fff;box-shadow:0 8px 22px var(--shadow);
+  animation:beat 1.6s ease-in-out infinite;position:relative;z-index:5;
+}
+#yes:hover{transform:scale(1.07)}
+#yes:focus-visible,#no:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+#no{background:var(--white);color:var(--ink);box-shadow:0 4px 14px var(--shadow);z-index:4}
+#no.run{position:fixed;transition:left .38s cubic-bezier(.3,1.5,.5,1),top .38s cubic-bezier(.3,1.5,.5,1)}
+#spacer{display:none}
+@keyframes beat{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes pop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+
+#thanks{display:none;flex-direction:column;gap:10px;align-items:center}
+#thanks.show{display:flex;animation:pop .8s cubic-bezier(.2,1.4,.4,1) both}
+#thanks .big{font-size:clamp(2.4rem,10vw,5.2rem);font-weight:600;margin:0;line-height:1.1}
+#thanks .small{font-size:clamp(1.6rem,6vw,3rem);margin:0;color:var(--pink-deep);font-weight:600}
+#thanks .big span{display:inline-block;animation:beat 1.2s ease-in-out infinite}
+
+.confetti{position:fixed;top:-20px;z-index:1;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translate3d(var(--dx),110vh,0) rotate(var(--rot))}}
+@media (prefers-reduced-motion:reduce){
+  .hearts{display:none}#yes{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="hearts" id="hearts" aria-hidden="true"></div>
+
+<main>
+  <h1 id="question">WILL YOU GO ON A FRIENDLY DATE WITH ME?</h1>
+  <div class="row" id="buttons">
+    <button id="yes" type="button">💗 YES</button>
+    <span id="spacer"></span>
+    <button id="no" type="button">NO</button>
+  </div>
+  <div id="thanks" aria-live="polite">
+    <p class="big">THANK YOU! <span>💗</span></p>
+    <p class="small">SEE YOU!</p>
+  </div>
+</main>
+
+<script>
+(function(){
+  var yes=document.getElementById('yes'), no=document.getElementById('no'),
+      spacer=document.getElementById('spacer'), question=document.getElementById('question'),
+      buttons=document.getElementById('buttons'), thanks=document.getElementById('thanks'),
+      heartsBox=document.getElementById('hearts');
+  var colors=['#ff8fb1','#f0608f','#ffc2d4','#fff0e0','#ffd6a5','#ffffff'];
+  var done=false, pointer={x:-999,y:-999};
+
+  /* floating background hearts */
+  var glyphs=['💗','♥','💕','♡'];
+  for(var i=0;i<16;i++){
+    var s=document.createElement('span');
+    s.textContent=glyphs[i%glyphs.length];
+    s.style.left=(Math.random()*100)+'%';
+    s.style.fontSize=(14+Math.random()*22)+'px';
+    s.style.animationDuration=(9+Math.random()*9)+'s';
+    s.style.animationDelay=(-Math.random()*14)+'s';
+    s.style.setProperty('--dx',((Math.random()-.5)*120)+'px');
+    heartsBox.appendChild(s);
+  }
+
+  /* NO button: jump somewhere new, always inside the window, away from YES and the pointer */
+  function jump(){
+    if(done) return;
+    if(!no.classList.contains('run')){
+      var r=no.getBoundingClientRect();
+      spacer.style.display='inline-block';
+      spacer.style.width=r.width+'px'; spacer.style.height=r.height+'px';
+      no.classList.add('run');
+      no.style.left=r.left+'px'; no.style.top=r.top+'px';
+      void no.offsetWidth;
+    }
+    var w=no.offsetWidth, h=no.offsetHeight, m=12,
+        vw=window.innerWidth, vh=window.innerHeight,
+        maxX=Math.max(m,vw-w-m), maxY=Math.max(m,vh-h-m),
+        yr=yes.getBoundingClientRect(), pad=24, x,y,ok,tries=0;
+    do{
+      x=m+Math.random()*(maxX-m); y=m+Math.random()*(maxY-m);
+      var cx=x+w/2, cy=y+h/2;
+      var hitsYes=x<yr.right+pad&&x+w>yr.left-pad&&y<yr.bottom+pad&&y+h>yr.top-pad;
+      var nearPointer=Math.hypot(cx-pointer.x,cy-pointer.y)<Math.max(140,Math.min(vw,vh)*.3);
+      ok=!hitsYes&&!nearPointer; tries++;
+    }while(!ok&&tries<60);
+    no.style.left=x+'px'; no.style.top=y+'px';
+  }
+
+  function track(e){
+    var t=e.touches?e.touches[0]:e;
+    pointer.x=t.clientX; pointer.y=t.clientY;
+  }
+  function dodge(e){
+    if(e.cancelable) e.preventDefault();
+    track(e); jump();
+  }
+
+  /* trigger on approach, hover, press, tap, focus, and click */
+  window.addEventListener('pointermove',function(e){
+    track(e);
+    if(done) return;
+    var r=no.getBoundingClientRect();
+    var cx=r.left+r.width/2, cy=r.top+r.height/2;
+    if(Math.hypot(cx-e.clientX,cy-e.clientY)<r.width*.5+70) jump();
+  },{passive:true});
+  ['pointerenter','pointerdown','mousedown','mouseover','click','focus'].forEach(function(t){
+    no.addEventListener(t,dodge);
+  });
+  no.addEventListener('touchstart',dodge,{passive:false});
+  no.addEventListener('touchend',dodge,{passive:false});
+  window.addEventListener('resize',function(){
+    if(!no.classList.contains('run')||done) return;
+    var r=no.getBoundingClientRect();
+    if(r.right>window.innerWidth||r.bottom>window.innerHeight) jump();
+  });
+
+  /* YES: celebration */
+  function confetti(){
+    for(var i=0;i<110;i++){
+      var c=document.createElement('div'); c.className='confetti';
+      var heart=Math.random()<.4;
+      if(heart){c.textContent=glyphs[Math.floor(Math.random()*glyphs.length)];c.style.fontSize=(14+Math.random()*18)+'px';c.style.color=colors[Math.floor(Math.random()*2)];}
+      else{c.style.width=(6+Math.random()*7)+'px';c.style.height=(8+Math.random()*10)+'px';c.style.background=colors[Math.floor(Math.random()*colors.length)];c.style.borderRadius='2px';}
+      c.style.left=(Math.random()*100)+'vw';
+      c.style.setProperty('--dx',((Math.random()-.5)*240)+'px');
+      c.style.setProperty('--rot',((Math.random()-.5)*900)+'deg');
+      c.style.animationDuration=(2.6+Math.random()*2.6)+'s';
+      c.style.animationDelay=(Math.random()*.9)+'s';
+      document.body.appendChild(c);
+      (function(el){setTimeout(function(){el.remove()},7000)})(c);
+    }
+  }
+  yes.addEventListener('click',function(){
+    done=true;
+    question.style.display='none';
+    buttons.style.display='none';
+    no.style.display='none';
+    thanks.classList.add('show');
+    confetti(); setTimeout(confetti,1400);
+  });
+})();
+</script>
+</body>
+</html>
